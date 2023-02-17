@@ -1,0 +1,111 @@
+---
+title: "Chapter 1"
+format: html
+---
+
+# 1. Bayesian Inference
+
+```{r}
+library(reticulate)
+library(here)
+Sys.setenv(RETICULATE_PYTHON = here(".venv/bin/python"))
+```
+
+```{python}
+import numpy as np
+from scipy import stats
+import pandas as pd
+import matplotlib.pyplot as plt
+import arviz as az
+import pymc as pm
+```
+
+
+## 1.2 A DIY Sampler, Do Not Try This at Home
+
+We will implement the Metropolis-Hastings algorithm into Python code in order to get an approximate answer. We will do it with the help of SciPy statistical functions:
+
+```{python}
+#| label: listing_1.1
+def post(θ, Y, α=1, β=1):
+    if 0 <= θ <= 1:
+        prior = stats.beta(α, β).pdf(θ)
+        like  = stats.bernoulli(θ).pmf(Y).prod()
+        prob = like * prior
+    else:
+        prob = -np.inf
+    return prob
+```
+
+```{python}
+#| label: listing_1.2
+Y = stats.bernoulli(0.7).rvs(20)
+```
+
+```{python}
+#| label: listing_1.3
+
+n_iters = 1000
+can_sd = 0.05 # parameter of M-H algorithm, not Bayesian model
+α = β = 1
+θ = 0.5
+trace = {"θ":np.zeros(n_iters)}
+p2 = post(θ, Y, α, β)
+
+for iter in range(n_iters):
+    θ_can = stats.norm(θ, can_sd).rvs(1)
+    p1 = post(θ_can, Y, α, β)
+    pa = p1 / p2
+
+    if pa > stats.uniform(0, 1).rvs(1):
+        θ = θ_can
+        p2 = p1
+
+    trace["θ"][iter] = θ
+```
+
+```{python}
+#| label: listing_1.4
+
+plt.figure(1, clear=True)
+_, axes = plt.subplots(1,2, sharey=True)
+axes[0].plot(trace['θ'], '0.5')
+axes[0].set_ylabel('θ', rotation=0, labelpad=15)
+axes[1].hist(trace['θ'], color='0.5', orientation="horizontal", density=True)
+axes[1].set_xticks([])
+
+plt.show()
+```
+
+```{python}
+az.summary(trace, kind="stats", round_to=2)
+```
+
+```{python}
+plt.figure(2, clear=True)
+az.plot_posterior(trace)
+plt.show()
+```
+
+## 1.3. Say Yes to Automating Inference, Say No to Automated Model Building
+
+```{python}
+#| label: listing_1.5
+
+# Declare a model in PyMC3
+with pm.Model() as model:
+    # Specify the prior distribution of unknown parameter
+    θ = pm.Beta("θ", alpha=1, beta=1)
+
+    # Specify the likelihood distribution and condition on the observed data
+    y_obs = pm.Binomial("y_obs", n=1, p=θ, observed=Y)
+
+    # Sample from the posterior distribution
+    idata = pm.sample(1000, return_inferencedata=True)
+```
+
+```{python}
+import graphviz 
+pm.model_to_graphviz(model).view()
+```
+
