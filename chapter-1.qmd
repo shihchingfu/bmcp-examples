@@ -12,12 +12,27 @@ Sys.setenv(RETICULATE_PYTHON = here(".venv/bin/python"))
 ```
 
 ```{python}
+# Basic
 import numpy as np
 from scipy import stats
 import pandas as pd
+from patsy import bs, dmatrix
 import matplotlib.pyplot as plt
+
+# Exploratory Analysis of Bayesian Models
 import arviz as az
+
+# Probabilistic programming languages
+import bambi as bmb
 import pymc as pm
+import tensorflow_probability as tfp
+
+#tfd = tfp.distributions
+
+# Computational Backend
+#import theano
+#import theano.tensor as tt
+#import tensorflow as tf
 ```
 
 
@@ -107,5 +122,34 @@ with pm.Model() as model:
 ```{python}
 import graphviz 
 pm.model_to_graphviz(model).view()
+```
+
+```{python}
+#| label: listing_1.6
+
+pred_dists = (pm.sample_prior_predictive(1000, model)["y_obs"],
+              pm.sample_posterior_predictive(idata, 1000, model)["y_obs"])
+```
+
+```{python}
+_, axes = plt.subplots(2,3, sharey=True, sharex=True)
+axes = np.ravel(axes)
+
+n_trials = [0, 1, 2, 3, 12, 180]
+success = [0, 1, 1, 1, 6, 59]
+data = zip(n_trials, success)
+
+beta_params = [(0.5, 0.5), (1, 1), (10, 10)]
+θ = np.linspace(0, 1, 1500)
+for idx, (N, y) in enumerate(data):
+    s_n = ("s" if (N > 1) else "")
+    for jdx, (a_prior, b_prior) in enumerate(beta_params):
+        p_theta_given_y = stats.beta.pdf(θ, a_prior + y, b_prior + N - y)
+
+        axes[idx].plot(θ, p_theta_given_y, lw=4, color=viridis[jdx])
+        axes[idx].set_yticks([])
+        axes[idx].set_ylim(0, 12)
+        axes[idx].plot(np.divide(y, N), 0, color="k", marker="o", ms=12)
+        axes[idx].set_title(f"{N:4d} trial{s_n} {y:4d} success")
 ```
 
