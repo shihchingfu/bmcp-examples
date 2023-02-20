@@ -8,7 +8,8 @@ format: html
 ```{r}
 library(reticulate)
 library(here)
-Sys.setenv(RETICULATE_PYTHON = here(".venv/bin/python"))
+#Sys.setenv(RETICULATE_PYTHON = here(".venv/bin/python"))
+py_config()
 ```
 
 ```{python}
@@ -120,15 +121,14 @@ with pm.Model() as model:
 ```
 
 ```{python}
-import graphviz 
 pm.model_to_graphviz(model).view()
 ```
 
 ```{python}
 #| label: listing_1.6
 
-pred_dists = (pm.sample_prior_predictive(1000, model)["y_obs"],
-              pm.sample_posterior_predictive(idata, 1000, model)["y_obs"])
+pred_dists = (pm.sample_prior_predictive(samples=1000, model=model)["observed_data"],
+              pm.sample_posterior_predictive(trace = idata, model=model)["observed_data"])
 ```
 
 ```{python}
@@ -146,10 +146,12 @@ for idx, (N, y) in enumerate(data):
     for jdx, (a_prior, b_prior) in enumerate(beta_params):
         p_theta_given_y = stats.beta.pdf(θ, a_prior + y, b_prior + N - y)
 
-        axes[idx].plot(θ, p_theta_given_y, lw=4, color=viridis[jdx])
+        axes[idx].plot(θ, p_theta_given_y, lw=4)# color=viridis[jdx])
         axes[idx].set_yticks([])
         axes[idx].set_ylim(0, 12)
         axes[idx].plot(np.divide(y, N), 0, color="k", marker="o", ms=12)
         axes[idx].set_title(f"{N:4d} trial{s_n} {y:4d} success")
+        
+plt.show()
 ```
 
