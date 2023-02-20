@@ -19,6 +19,7 @@ from scipy import stats
 import pandas as pd
 from patsy import bs, dmatrix
 import matplotlib.pyplot as plt
+import graphviz
 
 # Exploratory Analysis of Bayesian Models
 import arviz as az
@@ -26,7 +27,7 @@ import arviz as az
 # Probabilistic programming languages
 import bambi as bmb
 import pymc as pm
-import tensorflow_probability as tfp
+#import tensorflow_probability as tfp
 
 #tfd = tfp.distributions
 
